@@ -19,8 +19,6 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 */
-
-
 defined('ABSPATH') or die('No fucking script kiddies please!');
 
 class Devranter
@@ -175,6 +173,7 @@ class Devranter
 }
 
 
+
 /*
  * Adding the shortcodes
  * */
@@ -266,3 +265,28 @@ add_action('widgets_init', function () {
 
 
 
+
+
+
+/***********************************************************************
+ *
+ * ADMIN PAGE
+ */
+
+/** Step 2 (from text above). */
+add_action( 'admin_menu', 'devrant_admin_menu' );
+
+/** Step 1. */
+function devrant_admin_menu() {
+    add_options_page( 'Devranter Options', 'Devranter', 'manage_options', 'my-unique-identifier', 'devrant_admin_options' );
+}
+
+/** Step 3. */
+function devrant_admin_options() {
+    if ( !current_user_can( 'manage_options' ) )  {
+        wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+    }
+    echo '<div class="wrap">';
+    include("devranter-admin.php");
+    echo '</div>';
+}
