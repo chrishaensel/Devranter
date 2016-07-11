@@ -4,6 +4,7 @@
 	<div>{text}</div>
 	<a href="https://www.devrant.io/rants/{id}" target="_blank">Full rant at devrant.io</a>
 	<div class="single-footer">
-		Created: {date} - Up: {num_upvotes} - Down: {num_downvotes} - Comments: {num_comments}
+		Created: {date} - Up: {num_upvotes} - Down: {num_downvotes} - Comments: {num_comments}<br>
+		{footer}
 	</div>
 </div>

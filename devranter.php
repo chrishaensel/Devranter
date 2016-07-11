@@ -30,13 +30,15 @@ class Devranter
         'random' => 'https://www.devrant.io/api/devrant/rants/surprise?app=3'
     ];
 
-    public static function getUserTemplateDir() {
+    public static function devrantGetUserTemplateDir()
+    {
         return realpath(__DIR__ . '/..') . DIRECTORY_SEPARATOR . "devranter_templates";
     }
 
-    public static function devrantPluginActivate() {
-        $userTemplateDir = self::getUserTemplateDir();
-        if(!is_dir($userTemplateDir)) {
+    public static function devrantPluginActivate()
+    {
+        $userTemplateDir = self::devrantGetUserTemplateDir();
+        if (!is_dir($userTemplateDir)) {
             try {
                 mkdir($userTemplateDir);
                 chmod($userTemplateDir, 0775);
@@ -45,8 +47,8 @@ class Devranter
             }
         }
         // User's cutoms CSS
-        if(!file_exists($userTemplateDir.DIRECTORY_SEPARATOR."devranter.custom.css")) {
-            touch($userTemplateDir.DIRECTORY_SEPARATOR."devranter.custom.css");
+        if (!file_exists($userTemplateDir . DIRECTORY_SEPARATOR . "devranter.custom.css")) {
+            touch($userTemplateDir . DIRECTORY_SEPARATOR . "devranter.custom.css");
         }
     }
 
@@ -85,7 +87,7 @@ class Devranter
         if (is_dir($userTemplateDir)) {
             // This user actually has that directory! WTF
             $userTemplateFile = $userTemplateDir . DIRECTORY_SEPARATOR . $template . ".ctp";
-            if(file_exists($userTemplateFile)) {
+            if (file_exists($userTemplateFile)) {
                 // This user actually has got this template. What a nerd!
                 return file_get_contents($userTemplateFile);
             }
@@ -130,6 +132,12 @@ class Devranter
             if (isset($data->attached_image->url)) {
                 $image = '<img src="' . $data->attached_image->url . '">';
             }
+            $linkback = null;
+            if(get_option('devrant_link_back')) {
+                $linkback = '
+                		<span class="devrant-copy">Devranter by <a href="http://www.chaensel.de/devranter" target="_blank">Christian Hänsel</a></span>
+                ';
+            }
             $template = self::devrant_loadTemplate($data->template);
             $output   = str_replace("{username}", $data->user_username, $template);
             $output   = str_replace("{text}", $data->text, $output);
@@ -139,6 +147,7 @@ class Devranter
             $output   = str_replace("{num_comments}", $data->num_comments, $output);
             $output   = str_replace("{date}", date("Y.m.d H:i", $data->created_time), $output);
             $output   = str_replace("{image}", $image, $output);
+            $output = str_replace("{footer}", $linkback, $output);
             return $output;
         }
     }
@@ -173,7 +182,6 @@ class Devranter
 }
 
 
-
 /*
  * Adding the shortcodes
  * */
@@ -181,27 +189,20 @@ class Devranter
 add_shortcode('devrant-single', ['Devranter', 'devrant_getSingleRant']);
 add_shortcode('devrant-random', ['Devranter', 'devrant_getRandomRant']);
 
-register_activation_hook( __FILE__, ['Devranter', 'devrantPluginActivate'] );
+register_activation_hook(__FILE__, ['Devranter', 'devrantPluginActivate']);
 
 
-function wpse_load_plugin_css()
+function devrant_load_plugin_css()
 {
     $plugin_url = plugin_dir_url(__FILE__);
     wp_enqueue_style('devranter', $plugin_url . 'css/devranter.css');
 
-    if(file_exists(Devranter::getUserTemplateDir().DIRECTORY_SEPARATOR."devranter.custom.css")) {
+    if (file_exists(Devranter::devrantGetUserTemplateDir() . DIRECTORY_SEPARATOR . "devranter.custom.css")) {
         wp_enqueue_style('devranter-custom', get_site_url() . DIRECTORY_SEPARATOR . "wp-content" . DIRECTORY_SEPARATOR . "plugins" . DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR . "devranter_templates" . DIRECTORY_SEPARATOR . "devranter.custom.css");
     }
 }
 
-add_action('wp_enqueue_scripts', 'wpse_load_plugin_css');
-
-
-
-
-
-
-
+add_action('wp_enqueue_scripts', 'devrant_load_plugin_css');
 
 /*
  * ===================================================
@@ -264,29 +265,57 @@ add_action('widgets_init', function () {
 });
 
 
-
-
-
-
 /***********************************************************************
  *
  * ADMIN PAGE
  */
 
 /** Step 2 (from text above). */
-add_action( 'admin_menu', 'devrant_admin_menu' );
+add_action('admin_menu', 'devrant_admin_menu');
+add_action('admin_init', 'devrant_admin_custom_settings');
 
 /** Step 1. */
-function devrant_admin_menu() {
-    add_options_page( 'Devranter Options', 'Devranter', 'manage_options', 'my-unique-identifier', 'devrant_admin_options' );
+function devrant_admin_menu()
+{
+    add_options_page('Devranter Options', 'Devranter', 'manage_options', 'devranter-options', 'devrant_admin_options');
 }
 
 /** Step 3. */
-function devrant_admin_options() {
-    if ( !current_user_can( 'manage_options' ) )  {
-        wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+function devrant_admin_options()
+{
+    if (!current_user_can('manage_options')) {
+        wp_die(__('You do not have sufficient permissions to access this page.'));
     }
     echo '<div class="wrap">';
     include("devranter-admin.php");
     echo '</div>';
 }
+
+function devrant_admin_custom_settings()
+{
+    register_setting('devrant-settings-group', 'devrant_link_back');
+    add_settings_section('devrant-general-settings', 'General Settings', 'devrant_general_options', 'devranter-options');
+    add_settings_field('devrant_link_back', 'Link back to me', 'devranter_link_back_field', 'devranter-options', 'devrant-general-settings');
+}
+
+function devrant_general_options()
+{
+    echo '';
+}
+
+
+/*==================== THE FIELDS FOR THE ADMIN THINGY ====================*/
+
+function devranter_link_back_field()
+{
+    $linkBackChecked = '';
+    if(get_option('devrant_link_back')) {
+        $linkBackChecked = 'checked="checked"';
+    }
+    echo '
+<label for="devrant_link_back">
+    <input type="checkbox" name="devrant_link_back" '.$linkBackChecked.' id="devrant_link_back">
+    Link back to the plugin author to show some love?</label>
+    ';
+}
+

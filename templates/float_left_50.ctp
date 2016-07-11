@@ -8,5 +8,6 @@
 		Up: {num_upvotes} <br>
 		Down: {num_downvotes} <br>
 		Comments: {num_comments}<br>
+		{footer}
 	</div>
 </div>
